@@ -51,7 +51,7 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <ImageView
-                android:id="@+id/imageView2"
+                android:id="@+id/imWeather"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:src="@drawable/ic_launcher_foreground"
@@ -67,7 +67,7 @@
                 android:textSize="24dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/imageView2" />
+                app:layout_constraintTop_toBottomOf="@+id/imWeather" />
 
             <TextView
                 android:id="@+id/tvCurrentTemp"
@@ -106,7 +106,7 @@
                 app:layout_constraintTop_toBottomOf="@+id/tvCondition" />
 
             <ImageButton
-                android:id="@+id/imageButton2"
+                android:id="@+id/ibSync"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@null"
@@ -116,7 +116,7 @@
                 app:layout_constraintTop_toBottomOf="@+id/tvMaxMin" />
 
             <ImageButton
-                android:id="@+id/imageButton"
+                android:id="@+id/ibSearch"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@null"

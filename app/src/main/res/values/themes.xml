@@ -4,7 +4,7 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="colorPrimaryVariant">@color/blue</item>
-        <item name="colorPrimary">@color/white</item>
+        <item name="colorPrimary">@color/blue</item>
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
