@@ -7,7 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.weatherapp.MainViewModel
+import com.example.weatherapp.dataBase.MainViewModel
+import com.example.weatherapp.WeatherTranslator
 import com.example.weatherapp.adapters.WeatherAdapter
 import com.example.weatherapp.adapters.WeatherModel
 import com.example.weatherapp.databinding.FragmentDaysBinding
@@ -29,8 +30,13 @@ class DaysFragment : Fragment(), WeatherAdapter.Listener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         init()
-        model.liveDataList.observe(viewLifecycleOwner) {
-            adapter.submitList(it.subList(1, it.size))
+        model.liveDataList.observe(viewLifecycleOwner) { list ->
+            val translatedList = list.map { item ->
+                item.copy(
+                    condition = WeatherTranslator.translate(item.condition)
+                )
+            }
+            adapter.submitList(translatedList)
         }
     }
     private fun init() = with(binding){

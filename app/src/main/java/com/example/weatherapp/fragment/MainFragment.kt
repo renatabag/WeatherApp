@@ -2,10 +2,13 @@ package com.example.weatherapp.fragment
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.net.ConnectivityManager
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -13,11 +16,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresPermission
-import androidx.constraintlayout.helper.widget.Carousel
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.activityViewModels
@@ -27,23 +27,21 @@ import com.android.volley.Response
 import com.android.volley.toolbox.HttpHeaderParser
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
-import com.example.weatherapp.MainViewModel
-import com.example.weatherapp.R
+import com.example.weatherapp.DateUtils
+import com.example.weatherapp.WeatherTranslator
 import com.example.weatherapp.adapters.VpAdapter
 import com.example.weatherapp.adapters.WeatherModel
-import com.example.weatherapp.databinding.ActivityMainBinding
+import com.example.weatherapp.dataBase.MainViewModel
 import com.example.weatherapp.databinding.FragmentMainBinding
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.tasks.CancellationToken
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.material.tabs.TabLayoutMediator
 import com.squareup.picasso.Picasso
-import okhttp3.OkHttpClient
-import okhttp3.internal.http2.Settings
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Locale
 import kotlin.getValue
 
 const val API_Key = "0adbdda232bd422faf5112009251304"
@@ -74,11 +72,17 @@ class MainFragment : Fragment() {
         permissionListener()
         init()
         updateCurrentCard()
+        model.loadLastWeather()
     }
 
     override fun onResume() {
         super.onResume()
+        requireContext().registerReceiver(
+            networkReceiver,
+            IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+        )
         checkLocation()
+
     }
     @SuppressLint("MissingPermission")
     private fun init() = with(binding){
@@ -86,7 +90,7 @@ class MainFragment : Fragment() {
         val adapter = VpAdapter(activity as FragmentActivity, fList)
         vp.adapter = adapter
         TabLayoutMediator(tabLayout, vp){
-            tab,pos ->tab.text = tList[pos]
+                tab,pos ->tab.text = tList[pos]
         }.attach()
         ibSync.setOnClickListener @androidx.annotation.RequiresPermission(allOf = [android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION]) {
             tabLayout.selectTab(tabLayout.getTabAt(0))
@@ -110,7 +114,7 @@ class MainFragment : Fragment() {
         }else{
             DialogManager.locationSettingsDialog(requireContext(), object : DialogManager.Listener{
                 override fun onClick(name: String?) {
-                   startActivity(Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                    startActivity(Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                 }
             })
         }
@@ -155,7 +159,7 @@ class MainFragment : Fragment() {
                 "&q=" +
                 city +
                 "&days=" +
-                "3" +
+                "5" +
                 "&aqi=no&alerts=no"
         val queue = Volley.newRequestQueue(context)
         val request = object : StringRequest(
@@ -188,12 +192,12 @@ class MainFragment : Fragment() {
         val list = ArrayList<WeatherModel>()
         val daysArray = mainObject.getJSONObject("forecast")
             .getJSONArray("forecastday")
-        val name =mainObject.getJSONObject("location").getString("name")
+        val name = mainObject.getJSONObject("location").getString("name")
         for (i in 0 until daysArray.length()){
             val day = daysArray[i] as JSONObject
             val item = WeatherModel(
                 name,
-                day.getString("date"),
+                DateUtils.formatDate(day.getString("date")), // Форматируем дату здесь
                 day.getJSONObject("day").getJSONObject("condition").getString("text"),
                 currentTemp = "",
                 day.getJSONObject("day").getString("maxtemp_c").toFloat().toInt().toString(),
@@ -206,10 +210,10 @@ class MainFragment : Fragment() {
         model.liveDataList.value = list
         return list
     }
-    private  fun parseCurrentData(mainObject: JSONObject, weatherItem: WeatherModel){
+    private fun parseCurrentData(mainObject: JSONObject, weatherItem: WeatherModel){
         val item = WeatherModel(
             mainObject.getJSONObject("location").getString("name"),
-            mainObject.getJSONObject("current").getString("last_updated"),
+            formatDateTime(mainObject.getJSONObject("current").getString("last_updated")),
             mainObject.getJSONObject("current").getJSONObject("condition").getString("text"),
             mainObject.getJSONObject("current").getString("temp_c").toFloat().toInt().toString()+"℃",
             weatherItem.maxTemp, weatherItem.minTemap,
@@ -217,27 +221,55 @@ class MainFragment : Fragment() {
             weatherItem.hours
         )
         model.liveDataCurrent.value = item
+        model.saveLastWeather(item)
+    }
+
+    private fun formatDateTime(dateTime: String): String {
+        return try {
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            val date = inputFormat.parse(dateTime) ?: return dateTime
+
+            val outputFormat = SimpleDateFormat("dd.MM HH:mm", Locale.getDefault())
+            outputFormat.format(date)
+        } catch (e: Exception) {
+            dateTime // возвращаем оригинал в случае ошибки
+        }
     }
     private fun updateCurrentCard() = with(binding){
         model.liveDataCurrent.observe(viewLifecycleOwner){
             val maxMinTemp = "${it.maxTemp}℃ / ${it.minTemap}℃"
             tvDate.text=it.time
             tvCity.text=it.city
-            tvCurrentTemp.text=it.currentTemp.ifEmpty { maxMinTemp }
-            tvCondition.text=it.condition
+            tvCurrentTemp.text= WeatherTranslator.translate(it.currentTemp.ifEmpty { maxMinTemp })
+            tvCondition.text= WeatherTranslator.translate(it.condition)
             tvMaxMin.text = if(it.currentTemp.isEmpty()) "" else maxMinTemp
             Picasso.get().load("https:"+it.imageUrl).into(imWeather)
+        }
+    }
 
-        }
-    }
-    private fun checkPermission(){
-        if(!isPermissionGranted(Manifest.permission.ACCESS_FINE_LOCATION)){
-            permissionListener()
-            plauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
-    }
     companion object {
         @JvmStatic
         fun newInstance() = MainFragment()
+    }
+
+    fun Context.isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkInfo = connectivityManager.activeNetworkInfo
+        return networkInfo != null && networkInfo.isConnected
+    }
+
+    private val networkReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (isAdded && !isDetached) {
+                if (context.isNetworkAvailable()) {
+                    checkLocation()
+                }
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        requireContext().unregisterReceiver(networkReceiver)
     }
 }

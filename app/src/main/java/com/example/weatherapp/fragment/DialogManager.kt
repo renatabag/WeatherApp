@@ -3,7 +3,6 @@ package com.example.weatherapp.fragment
 import android.content.Context
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
-import okhttp3.internal.cache.DiskLruCache
 
 object DialogManager {
     fun locationSettingsDialog(context: Context, listener: Listener){

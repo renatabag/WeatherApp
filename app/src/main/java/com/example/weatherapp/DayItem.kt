@@ -1,8 +1,5 @@
 package com.example.weatherapp
 
-import java.net.URL
-import java.util.concurrent.locks.Condition
-
 data class DayItem(
     val city : String,
     val time : String,

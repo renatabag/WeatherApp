@@ -1,6 +1,5 @@
 package com.example.weatherapp.fragment
 
-import android.content.Context
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat

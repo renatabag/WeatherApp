@@ -7,9 +7,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.weatherapp.MainViewModel
+import com.example.weatherapp.WeatherTranslator
 import com.example.weatherapp.adapters.WeatherAdapter
 import com.example.weatherapp.adapters.WeatherModel
+import com.example.weatherapp.dataBase.MainViewModel
 import com.example.weatherapp.databinding.FragmentHoursBinding
 import org.json.JSONArray
 import org.json.JSONObject
@@ -42,19 +43,36 @@ class HoursFragment : Fragment() {
         val hoursArray = JSONArray(witem.hours)
         val list = ArrayList<WeatherModel>()
         for (i in 0 until hoursArray.length()){
+            val hour = hoursArray[i] as JSONObject
+            val timeString = hour.getString("time")
+            val formattedTime = formatHourTime(timeString)
+
             val item = WeatherModel(
                 witem.city,
-                (hoursArray[i] as JSONObject).getString("time"),
-                (hoursArray[i] as JSONObject).getJSONObject("condition").getString("text"),
-                (hoursArray[i] as JSONObject).getString("temp_c").toFloat().toInt().toString()+"℃",
+                formattedTime,
+                WeatherTranslator.translate(hour.getJSONObject("condition").getString("text")),
+                hour.getString("temp_c").toFloat().toInt().toString()+"℃",
                 maxTemp = "",
                 minTemap = "",
-                (hoursArray[i] as JSONObject).getJSONObject("condition").getString("icon"),
+                hour.getJSONObject("condition").getString("icon"),
                 hours = ""
             )
             list.add(item)
         }
         return list
+    }
+
+    private fun formatHourTime(timeString: String): String {
+        return try {
+            val parts = timeString.split(" ")
+            if (parts.size == 2) {
+                parts[1]
+            } else {
+                timeString
+            }
+        } catch (e: Exception) {
+            timeString
+        }
     }
     companion object {
         @JvmStatic

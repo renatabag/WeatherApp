@@ -1,6 +1,5 @@
 package com.example.weatherapp.adapters
 
-import java.util.concurrent.locks.Condition
 
 data class WeatherModel(
     val city: String,

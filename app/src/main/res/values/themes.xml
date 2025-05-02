@@ -10,5 +10,10 @@
     </style>
 
 
+    <style name="NotificationTheme" parent="Theme.MaterialComponents.DayNight">
+        <item name="android:colorBackground">#2196F3</item>
+        <item name="android:textColorPrimary">@color/white</item>
+    </style>
+
     <style name="Theme.WeatherApp" parent="Base.Theme.WeatherApp" />
 </resources>
